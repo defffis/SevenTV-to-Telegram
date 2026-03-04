@@ -42,11 +42,25 @@ class SevenTVProvider:
 
     def get_active_emote_set(self, profile: dict[str, Any]) -> dict[str, Any] | None:
         active_set = profile.get("emote_set")
-        if active_set is None:
+        if isinstance(active_set, dict):
+            return active_set
+
+        active_set_id = self._extract_active_emote_set_id(profile, active_set)
+        if active_set_id is None:
             return None
-        if not isinstance(active_set, dict):
-            raise SevenTVProviderError("SevenTV profile does not contain an active emote set")
-        return active_set
+
+        return self._request_json(f"/emote-sets/{active_set_id}")
+
+    @staticmethod
+    def _extract_active_emote_set_id(profile: dict[str, Any], active_set: Any) -> str | None:
+        if isinstance(active_set, str) and active_set:
+            return active_set
+
+        profile_emote_set_id = profile.get("emote_set_id")
+        if isinstance(profile_emote_set_id, str) and profile_emote_set_id:
+            return profile_emote_set_id
+
+        return None
 
     def get_active_set_emotes(self, active_set: dict[str, Any]) -> list[SourceEmote]:
         raw_emotes = active_set.get("emotes")
