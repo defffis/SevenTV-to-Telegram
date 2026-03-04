@@ -55,6 +55,12 @@ class TargetSetPlan(BaseModel):
     items: list[TelegramTargetItem]
 
 
+class SkippedEmote(BaseModel):
+    source_id: str
+    name: str
+    reason: str
+
+
 class SyncPlan(BaseModel):
     kind: SyncKind
     source_count: int = 0
@@ -65,3 +71,4 @@ class SyncPlan(BaseModel):
     to_update: list[TelegramTargetItem] = Field(default_factory=list)
     to_delete: list[TelegramTargetItem] = Field(default_factory=list)
     shards: list[TargetSetPlan] = Field(default_factory=list)
+    skipped: list[SkippedEmote] = Field(default_factory=list)
