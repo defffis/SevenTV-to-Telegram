@@ -17,6 +17,28 @@ Artifacts are written to `artifacts/`:
 - `desired-state.json`
 - `run.log`
 
+## Development commands
+
+Install project with dev tools:
+```bash
+pip install -e .[dev]
+```
+
+Run formatting:
+```bash
+black src tests
+```
+
+Run linting:
+```bash
+ruff check src tests
+```
+
+Run tests:
+```bash
+pytest
+```
+
 ## GitHub Actions secrets
 
 Both workflows (`nightly-sync.yml` and `manual-sync.yml`) read configuration from `secrets` in the `production` environment.

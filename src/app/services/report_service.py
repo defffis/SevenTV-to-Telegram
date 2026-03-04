@@ -6,10 +6,7 @@ from app.domain.models import SyncPlan
 def render_sync_report(plan: SyncPlan) -> str:
     skip_tail = ""
     if plan.skipped:
-        sample = "; ".join(
-            f"{item.source_id} ({item.reason})"
-            for item in plan.skipped[:3]
-        )
+        sample = "; ".join(f"{item.source_id} ({item.reason})" for item in plan.skipped[:3])
         skip_tail = f", skipped={len(plan.skipped)} [{sample}]"
 
     return (
