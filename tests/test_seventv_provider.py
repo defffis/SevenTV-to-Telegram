@@ -147,3 +147,40 @@ def test_seventv_provider_fetches_emote_set_from_twitch_connection() -> None:
     assert [item.source_id for item in provider.fetch_emotes("emoji")] == ["e4"]
     assert any(path.endswith("/emote-sets/set_twitch") for path in called_paths)
     assert not any(path.endswith("/emote-sets/set_kick") for path in called_paths)
+
+
+def test_seventv_provider_uses_explicit_emote_set_override() -> None:
+    set_payload = {
+        "id": "set_override",
+        "emotes": [
+            {
+                "id": "five",
+                "name": "anim_five",
+                "data": {
+                    "id": "e5",
+                    "name": "anim_five",
+                    "animated": True,
+                    "aliases": ["🎉"],
+                    "host": {
+                        "url": "//cdn.7tv.app/emote/e5",
+                        "files": [{"name": "1x.gif", "format": "gif", "width": 32, "height": 32}],
+                    },
+                },
+            }
+        ],
+    }
+
+    called_paths: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        called_paths.append(request.url.path)
+        if request.url.path.endswith("/emote-sets/set_override"):
+            return httpx.Response(200, json=set_payload)
+        return httpx.Response(404, json={})
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    provider = SevenTVProvider(seventv_user_id="user", seventv_emote_set_id="set_override", client=client)
+
+    assert [item.source_id for item in provider.fetch_emotes("stickers")] == ["e5"]
+    assert any(path.endswith("/emote-sets/set_override") for path in called_paths)
+    assert not any(path.endswith("/users/user") for path in called_paths)

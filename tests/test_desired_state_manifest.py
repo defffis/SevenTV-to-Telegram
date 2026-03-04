@@ -10,6 +10,7 @@ from app.main import main
 
 class _StubSettings:
     seventv_user_id = "user"
+    seventv_emote_set_id = ""
     telegram_bot_token = "token"
     telegram_bot_username = "bot"
 

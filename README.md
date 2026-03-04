@@ -49,8 +49,8 @@
 ### 7TV API: допущения
 
 - Используется `https://7tv.io/v3`.
-- Профиль пользователя читается по `GET /users/{SEVENTV_USER_ID}`.
-- Провайдер ищет активный emote set сначала в root-полях профиля (`emote_set` / `emote_set_id`), затем в `connections[]` (`emote_set` / `emote_set_id`) с приоритетом `TWITCH`; при наличии только id набор догружается через `GET /emote-sets/{id}`.
+- Если задан `SEVENTV_EMOTE_SET_ID`, провайдер сразу читает набор по `GET /emote-sets/{SEVENTV_EMOTE_SET_ID}` (без зависимости от структуры user-профиля).
+- Иначе профиль пользователя читается по `GET /users/{SEVENTV_USER_ID}`, затем активный emote set ищется в root-полях (`emote_set` / `emote_set_id`) и в `connections[]` (`emote_set` / `emote_set_id`) с приоритетом `TWITCH`; при наличии только id набор догружается через `GET /emote-sets/{id}`.
 - Если активный набор не найден или имеет неожиданный формат — синхронизация завершается ошибкой.
 - Выбор файла эмоута делается эвристически по формату/размеру, затем строится `image_url`.
 
@@ -117,6 +117,7 @@
 
 ### Опционально
 
+- `SEVENTV_EMOTE_SET_ID`
 - `TELEGRAM_BOT_USER_ID`
 - `TELEGRAM_SET_BASE_NAME`
 - `TELEGRAM_API_BASE_URL`
@@ -248,6 +249,10 @@ cp .env.example .env
 - `SEVENTV_USER_ID`
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_BOT_USERNAME`
+
+Опционально для детерминированного выбора набора:
+
+- `SEVENTV_EMOTE_SET_ID`
 
 ### Ошибки Telegram `429 Too Many Requests`
 

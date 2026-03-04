@@ -26,14 +26,20 @@ class SevenTVEndpoints:
 class SevenTVProvider:
     """Провайдер SevenTV с единым контрактом SourceEmote."""
 
-    def __init__(self, seventv_user_id: str, client: httpx.Client, endpoints: SevenTVEndpoints | None = None) -> None:
+    def __init__(
+        self,
+        seventv_user_id: str,
+        client: httpx.Client,
+        endpoints: SevenTVEndpoints | None = None,
+        seventv_emote_set_id: str = "",
+    ) -> None:
         self.seventv_user_id = seventv_user_id
+        self.seventv_emote_set_id = seventv_emote_set_id.strip()
         self.client = client
         self.endpoints = endpoints or SevenTVEndpoints()
 
     def fetch_emotes(self, kind: SyncKind) -> list[SourceEmote]:
-        profile = self.get_user_profile()
-        active_set = self.get_active_emote_set(profile)
+        active_set = self.resolve_active_emote_set()
         emotes = self.get_active_set_emotes(active_set)
 
         if kind == "emoji":
@@ -42,6 +48,13 @@ class SevenTVProvider:
 
     def get_user_profile(self) -> dict[str, Any]:
         return self._request_json(f"/users/{self.seventv_user_id}")
+
+    def resolve_active_emote_set(self) -> dict[str, Any]:
+        if self.seventv_emote_set_id:
+            return self._request_json(f"/emote-sets/{self.seventv_emote_set_id}")
+
+        profile = self.get_user_profile()
+        return self.get_active_emote_set(profile)
 
     def get_active_emote_set(self, profile: dict[str, Any]) -> dict[str, Any]:
         root_emote_set = profile.get("emote_set")

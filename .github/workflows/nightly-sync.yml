@@ -11,6 +11,7 @@ jobs:
     environment: production
     env:
       SEVENTV_USER_ID: ${{ secrets.SEVENTV_USER_ID }}
+      SEVENTV_EMOTE_SET_ID: ${{ secrets.SEVENTV_EMOTE_SET_ID }}
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_BOT_USER_ID: ${{ secrets.TELEGRAM_BOT_USER_ID }}
       TELEGRAM_BOT_USERNAME: ${{ secrets.TELEGRAM_BOT_USERNAME }}
