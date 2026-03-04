@@ -24,7 +24,5 @@ def render_static(emote: SourceEmote) -> SourceEmote:
         emote.source_format = target_format
 
     if emote.checksum is None:
-        emote.checksum = (
-            f"{emote.source_id}:static:{emote.kind}:{target_format}:{profile['max_side']}"
-        )
+        emote.checksum = f"{emote.source_id}:static:{emote.kind}:{target_format}:{profile['max_side']}"
     return emote

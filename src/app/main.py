@@ -86,13 +86,7 @@ def main() -> int:
 
         desired_state_path = Path(args.desired_state_path)
         desired_state_path.parent.mkdir(parents=True, exist_ok=True)
-        desired_state_payload = {
-            "shards": [
-                shard.model_dump(mode="json")
-                for plan in plans
-                for shard in plan.shards
-            ]
-        }
+        desired_state_payload = {"shards": [shard.model_dump(mode="json") for plan in plans for shard in plan.shards]}
         desired_state_path.write_text(json.dumps(desired_state_payload, ensure_ascii=False, indent=2), encoding="utf-8")
         return 0
 

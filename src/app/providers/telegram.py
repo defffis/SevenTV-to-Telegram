@@ -139,7 +139,11 @@ class TelegramProvider:
         return {"operation": "delete_item", "sticker": sticker_id}
 
     def replace_item(self, old_sticker_id: str, new_item: TelegramTargetItem, dry_run: bool = False) -> dict[str, Any]:
-        payload = {"user_id": self.bot_user_id, "old_sticker": old_sticker_id, "sticker": self._sticker_payload(new_item)}
+        payload = {
+            "user_id": self.bot_user_id,
+            "old_sticker": old_sticker_id,
+            "sticker": self._sticker_payload(new_item),
+        }
         if dry_run:
             return {"operation": "replace_item", "payload": payload}
         self._request("replaceStickerInSet", payload)

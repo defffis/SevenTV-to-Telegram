@@ -45,8 +45,12 @@ class PlannerTests(unittest.TestCase):
         emoji_items = [self._item("1", kind="emoji")]
         sticker_items = [self._item("1", kind="stickers")]
 
-        emoji_shards = shard_target_sets("emoji", emoji_items, shard_size=500, base_set_name="prefix", bot_username="bot")
-        sticker_shards = shard_target_sets("stickers", sticker_items, shard_size=500, base_set_name="prefix", bot_username="bot")
+        emoji_shards = shard_target_sets(
+            "emoji", emoji_items, shard_size=500, base_set_name="prefix", bot_username="bot"
+        )
+        sticker_shards = shard_target_sets(
+            "stickers", sticker_items, shard_size=500, base_set_name="prefix", bot_username="bot"
+        )
 
         self.assertEqual(emoji_shards[0].set_name, "prefix_emoji_001_by_bot")
         self.assertEqual(sticker_shards[0].set_name, "prefix_stickers_001_by_bot")
