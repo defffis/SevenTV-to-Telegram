@@ -38,7 +38,8 @@ class SyncService:
             kind,
             projected,
             settings.default_shard_size,
-            f"{settings.telegram_set_base_name}_by_{settings.telegram_bot_username.lstrip('@')}",
+            settings.telegram_set_base_name,
+            settings.telegram_bot_username,
         )
 
         return SyncPlan(
