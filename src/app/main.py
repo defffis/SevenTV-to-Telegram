@@ -3,6 +3,9 @@ from __future__ import annotations
 import argparse
 import logging
 
+import httpx
+
+from app.config import settings
 from app.logging import configure_logging
 from app.providers.seventv import SevenTVProvider
 from app.providers.telegram import TelegramProvider
@@ -37,7 +40,12 @@ def main() -> int:
     logger = logging.getLogger(__name__)
 
     if args.command == "sync":
-        seventv = SevenTVProvider()
+        if not settings.seventv_user_id:
+            raise RuntimeError("SEVENTV_USER_ID is required")
+        seventv = SevenTVProvider(
+            seventv_user_id=settings.seventv_user_id,
+            client=httpx.Client(timeout=10.0),
+        )
         telegram = TelegramProvider()
         service = SyncService(seventv=seventv, telegram=telegram)
 

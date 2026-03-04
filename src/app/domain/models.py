@@ -13,13 +13,26 @@ class SourceEmote(BaseModel):
     source_id: str = Field(..., description="Уникальный ID эмоута в SevenTV")
     name: str = Field(..., description="Человекочитаемое имя")
     kind: SyncKind
-    source_url: str
-    file_ext: str
-    animated: bool = False
+    image_url: str
+    is_animated: bool = False
+    source_format: str
     width: Optional[int] = None
     height: Optional[int] = None
-    checksum: Optional[str] = None
+    aliases: list[str] = Field(default_factory=list)
+    source_hash: Optional[str] = None
     updated_at: Optional[datetime] = None
+
+    @property
+    def animated(self) -> bool:
+        return self.is_animated
+
+    @property
+    def checksum(self) -> Optional[str]:
+        return self.source_hash
+
+    @checksum.setter
+    def checksum(self, value: Optional[str]) -> None:
+        self.source_hash = value
 
 
 class TelegramTargetItem(BaseModel):
