@@ -1,0 +1,13 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+import os
+
+
+@dataclass(frozen=True)
+class Settings:
+    render_cache_dir: str = os.getenv("RENDER_CACHE_DIR", ".cache/render")
+    default_shard_size: int = int(os.getenv("SHARD_SIZE", "120"))
+
+
+settings = Settings()
