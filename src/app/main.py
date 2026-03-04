@@ -52,6 +52,7 @@ def main() -> int:
         settings.validate_required()
         seventv = SevenTVProvider(
             seventv_user_id=settings.seventv_user_id,
+            seventv_emote_set_id=settings.seventv_emote_set_id,
             client=httpx.Client(timeout=10.0),
         )
         telegram = TelegramProvider()

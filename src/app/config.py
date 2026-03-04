@@ -63,6 +63,7 @@ class Settings:
     render_cache_dir: str = ".cache/render"
     default_shard_size: int = 120
     seventv_user_id: str = ""
+    seventv_emote_set_id: str = ""
     telegram_bot_token: str = ""
     telegram_bot_user_id: int = 0
     telegram_bot_username: str = ""
@@ -95,6 +96,7 @@ class Settings:
             render_cache_dir=os.getenv("RENDER_CACHE_DIR", ".cache/render"),
             default_shard_size=_parse_int("SHARD_SIZE", default=120, min_value=1),
             seventv_user_id=os.getenv("SEVENTV_USER_ID", "").strip(),
+            seventv_emote_set_id=os.getenv("SEVENTV_EMOTE_SET_ID", "").strip(),
             telegram_bot_token=os.getenv("TELEGRAM_BOT_TOKEN", "").strip(),
             telegram_bot_user_id=_parse_int("TELEGRAM_BOT_USER_ID", default=0, min_value=0),
             telegram_bot_username=os.getenv("TELEGRAM_BOT_USERNAME", "").strip().lstrip("@"),

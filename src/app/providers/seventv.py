@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
+import logging
 from typing import Any
 
 import httpx
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from app.domain.models import SourceEmote, SyncKind
+
+
+logger = logging.getLogger(__name__)
 
 
 class SevenTVProviderError(RuntimeError):
@@ -21,16 +26,20 @@ class SevenTVEndpoints:
 class SevenTVProvider:
     """Провайдер SevenTV с единым контрактом SourceEmote."""
 
-    def __init__(self, seventv_user_id: str, client: httpx.Client, endpoints: SevenTVEndpoints | None = None) -> None:
+    def __init__(
+        self,
+        seventv_user_id: str,
+        client: httpx.Client,
+        endpoints: SevenTVEndpoints | None = None,
+        seventv_emote_set_id: str = "",
+    ) -> None:
         self.seventv_user_id = seventv_user_id
+        self.seventv_emote_set_id = seventv_emote_set_id.strip()
         self.client = client
         self.endpoints = endpoints or SevenTVEndpoints()
 
     def fetch_emotes(self, kind: SyncKind) -> list[SourceEmote]:
-        profile = self.get_user_profile()
-        active_set = self.get_active_emote_set(profile)
-        if active_set is None:
-            return []
+        active_set = self.resolve_active_emote_set()
         emotes = self.get_active_set_emotes(active_set)
 
         if kind == "emoji":
@@ -40,25 +49,55 @@ class SevenTVProvider:
     def get_user_profile(self) -> dict[str, Any]:
         return self._request_json(f"/users/{self.seventv_user_id}")
 
-    def get_active_emote_set(self, profile: dict[str, Any]) -> dict[str, Any] | None:
-        active_set = profile.get("emote_set")
-        if isinstance(active_set, dict):
-            return active_set
+    def resolve_active_emote_set(self) -> dict[str, Any]:
+        if self.seventv_emote_set_id:
+            return self._request_json(f"/emote-sets/{self.seventv_emote_set_id}")
 
-        active_set_id = self._extract_active_emote_set_id(profile, active_set)
-        if active_set_id is None:
-            return None
+        profile = self.get_user_profile()
+        return self.get_active_emote_set(profile)
 
-        return self._request_json(f"/emote-sets/{active_set_id}")
+    def get_active_emote_set(self, profile: dict[str, Any]) -> dict[str, Any]:
+        root_emote_set = profile.get("emote_set")
+        if isinstance(root_emote_set, dict):
+            return root_emote_set
+
+        root_emote_set_id = self._extract_emote_set_id(root_emote_set) or self._extract_emote_set_id(profile.get("emote_set_id"))
+        if root_emote_set_id:
+            return self._request_json(f"/emote-sets/{root_emote_set_id}")
+
+        connections = profile.get("connections")
+        if isinstance(connections, list):
+            preferred_connections = sorted(
+                [item for item in connections if isinstance(item, dict)],
+                key=lambda connection: 0 if str(connection.get("platform", "")).upper() == "TWITCH" else 1,
+            )
+
+            for connection in preferred_connections:
+                connection_emote_set = connection.get("emote_set")
+                if isinstance(connection_emote_set, dict):
+                    return connection_emote_set
+
+                connection_emote_set_id = self._extract_emote_set_id(connection_emote_set) or self._extract_emote_set_id(
+                    connection.get("emote_set_id")
+                )
+                if connection_emote_set_id:
+                    return self._request_json(f"/emote-sets/{connection_emote_set_id}")
+
+        logger.debug("SevenTV profile keys: %s", list(profile.keys()))
+        logger.debug("SevenTV profile connections: %s", json.dumps(profile.get("connections", []), ensure_ascii=False)[:4000])
+        raise SevenTVProviderError(
+            "SevenTV profile does not contain an active emote set in root fields or connections"
+        )
 
     @staticmethod
-    def _extract_active_emote_set_id(profile: dict[str, Any], active_set: Any) -> str | None:
-        if isinstance(active_set, str) and active_set:
-            return active_set
+    def _extract_emote_set_id(value: Any) -> str | None:
+        if isinstance(value, str) and value:
+            return value
 
-        profile_emote_set_id = profile.get("emote_set_id")
-        if isinstance(profile_emote_set_id, str) and profile_emote_set_id:
-            return profile_emote_set_id
+        if isinstance(value, dict):
+            nested_id = value.get("id")
+            if isinstance(nested_id, str) and nested_id:
+                return nested_id
 
         return None
 
