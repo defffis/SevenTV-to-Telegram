@@ -17,6 +17,8 @@ class Settings:
     telegram_max_retries: int = int(os.getenv("TELEGRAM_MAX_RETRIES", "5"))
     telegram_backoff_seconds: float = float(os.getenv("TELEGRAM_BACKOFF_SECONDS", "0.5"))
     telegram_timeout_seconds: int = int(os.getenv("TELEGRAM_TIMEOUT_SECONDS", "30"))
+    enable_animated: bool = os.getenv("ENABLE_ANIMATED", "1").lower() in {"1", "true", "yes", "on"}
+    enable_video: bool = os.getenv("ENABLE_VIDEO", "0").lower() in {"1", "true", "yes", "on"}
 
 
 settings = Settings()
