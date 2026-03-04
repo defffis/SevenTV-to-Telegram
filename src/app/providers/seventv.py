@@ -29,6 +29,8 @@ class SevenTVProvider:
     def fetch_emotes(self, kind: SyncKind) -> list[SourceEmote]:
         profile = self.get_user_profile()
         active_set = self.get_active_emote_set(profile)
+        if active_set is None:
+            return []
         emotes = self.get_active_set_emotes(active_set)
 
         if kind == "emoji":
@@ -38,8 +40,10 @@ class SevenTVProvider:
     def get_user_profile(self) -> dict[str, Any]:
         return self._request_json(f"/users/{self.seventv_user_id}")
 
-    def get_active_emote_set(self, profile: dict[str, Any]) -> dict[str, Any]:
+    def get_active_emote_set(self, profile: dict[str, Any]) -> dict[str, Any] | None:
         active_set = profile.get("emote_set")
+        if active_set is None:
+            return None
         if not isinstance(active_set, dict):
             raise SevenTVProviderError("SevenTV profile does not contain an active emote set")
         return active_set
