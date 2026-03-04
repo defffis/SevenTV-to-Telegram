@@ -1,0 +1,105 @@
+name: Manual Sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Run without applying changes
+        required: false
+        type: boolean
+        default: true
+      force_full_resync:
+        description: Force update even if checksum is unchanged
+        required: false
+        type: boolean
+        default: false
+      max_items:
+        description: Max items per kind (0 = all)
+        required: false
+        type: number
+        default: 0
+      sync_kind:
+        description: Kind to sync
+        required: false
+        type: choice
+        options:
+          - all
+          - emoji
+          - stickers
+        default: all
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      SEVENTV_USER_ID: ${{ secrets.SEVENTV_USER_ID }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_BOT_USER_ID: ${{ secrets.TELEGRAM_BOT_USER_ID }}
+      TELEGRAM_BOT_USERNAME: ${{ secrets.TELEGRAM_BOT_USERNAME }}
+      TELEGRAM_SET_BASE_NAME: ${{ secrets.TELEGRAM_SET_BASE_NAME }}
+      TELEGRAM_API_BASE_URL: ${{ secrets.TELEGRAM_API_BASE_URL }}
+      TELEGRAM_MAX_RETRIES: ${{ secrets.TELEGRAM_MAX_RETRIES }}
+      TELEGRAM_BACKOFF_SECONDS: ${{ secrets.TELEGRAM_BACKOFF_SECONDS }}
+      TELEGRAM_TIMEOUT_SECONDS: ${{ secrets.TELEGRAM_TIMEOUT_SECONDS }}
+      SHARD_SIZE: ${{ secrets.SHARD_SIZE }}
+      RENDER_CACHE_DIR: .cache/render
+      ENABLE_ANIMATED: ${{ secrets.ENABLE_ANIMATED }}
+      ENABLE_VIDEO: ${{ secrets.ENABLE_VIDEO }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install ffmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Run sync
+        run: |
+          ARGS=()
+          if [[ "${{ inputs.dry_run }}" == 'true' ]]; then
+            ARGS+=(--dry-run)
+          fi
+          if [[ "${{ inputs.force_full_resync }}" == 'true' ]]; then
+            ARGS+=(--force-full-resync)
+          fi
+          if [[ "${{ inputs.max_items }}" != '0' ]]; then
+            ARGS+=(--max-items "${{ inputs.max_items }}")
+          fi
+          if [[ "${{ inputs.sync_kind }}" != 'all' ]]; then
+            ARGS+=(--kind "${{ inputs.sync_kind }}")
+          fi
+
+          ./scripts/local_run.sh "${ARGS[@]}"
+
+      - name: Publish summary
+        if: always()
+        run: |
+          {
+            echo "## Manual Sync"
+            echo
+            echo "- dry_run: ${{ inputs.dry_run }}"
+            echo "- force_full_resync: ${{ inputs.force_full_resync }}"
+            echo "- max_items: ${{ inputs.max_items }}"
+            echo "- sync_kind: ${{ inputs.sync_kind }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: manual-sync-artifacts
+          if-no-files-found: warn
+          path: |
+            artifacts/report.json
+            artifacts/desired-state.json
+            artifacts/run.log

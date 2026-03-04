@@ -1,0 +1,71 @@
+name: Nightly Sync
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      SEVENTV_USER_ID: ${{ secrets.SEVENTV_USER_ID }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_BOT_USER_ID: ${{ secrets.TELEGRAM_BOT_USER_ID }}
+      TELEGRAM_BOT_USERNAME: ${{ secrets.TELEGRAM_BOT_USERNAME }}
+      TELEGRAM_SET_BASE_NAME: ${{ secrets.TELEGRAM_SET_BASE_NAME }}
+      TELEGRAM_API_BASE_URL: ${{ secrets.TELEGRAM_API_BASE_URL }}
+      TELEGRAM_MAX_RETRIES: ${{ secrets.TELEGRAM_MAX_RETRIES }}
+      TELEGRAM_BACKOFF_SECONDS: ${{ secrets.TELEGRAM_BACKOFF_SECONDS }}
+      TELEGRAM_TIMEOUT_SECONDS: ${{ secrets.TELEGRAM_TIMEOUT_SECONDS }}
+      SHARD_SIZE: ${{ secrets.SHARD_SIZE }}
+      RENDER_CACHE_DIR: .cache/render
+      ENABLE_ANIMATED: ${{ secrets.ENABLE_ANIMATED }}
+      ENABLE_VIDEO: ${{ secrets.ENABLE_VIDEO }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install ffmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Run sync
+        run: ./scripts/local_run.sh
+
+      - name: Publish summary
+        if: always()
+        run: |
+          {
+            echo "## Nightly Sync"
+            echo
+            if [[ -f artifacts/report.json ]]; then
+              echo "### report.json"
+              echo '```json'
+              cat artifacts/report.json
+              echo '```'
+            else
+              echo "report.json is missing"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-sync-artifacts
+          if-no-files-found: warn
+          path: |
+            artifacts/report.json
+            artifacts/desired-state.json
+            artifacts/run.log

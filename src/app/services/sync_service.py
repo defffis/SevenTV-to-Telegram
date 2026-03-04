@@ -26,8 +26,11 @@ class SyncService:
         kind: SyncKind,
         dry_run: bool = False,
         force_full_resync: bool = False,
+        max_items: int | None = None,
     ) -> SyncPlan:
         source_items = self.seventv.fetch_emotes(kind)
+        if max_items is not None:
+            source_items = source_items[:max_items]
         normalized = self._normalize(source_items, kind)
         rendered, skipped = self._render(normalized)
         current = self.telegram.read_current_state(kind)
