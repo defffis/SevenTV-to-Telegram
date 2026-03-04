@@ -109,7 +109,7 @@ class TelegramProvider:
             "name": set_name,
             "title": title,
             "sticker_type": "custom_emoji" if kind == "emoji" else "regular",
-            "stickers": [self._sticker_payload(first_item)],
+            "stickers": [self._sticker_payload(first_item, allow_missing_file_id=dry_run)],
         }
         if dry_run:
             return {"operation": "create_set", "payload": payload}
@@ -125,7 +125,11 @@ class TelegramProvider:
 
     def add_item(self, set_name: str, item: TelegramTargetItem, dry_run: bool = False) -> dict[str, Any]:
         self._ensure_managed_set_name(set_name)
-        payload = {"user_id": self.bot_user_id, "name": set_name, "sticker": self._sticker_payload(item)}
+        payload = {
+            "user_id": self.bot_user_id,
+            "name": set_name,
+            "sticker": self._sticker_payload(item, allow_missing_file_id=dry_run),
+        }
         if dry_run:
             return {"operation": "add_item", "payload": payload}
         self._request("addStickerToSet", payload)
@@ -142,7 +146,7 @@ class TelegramProvider:
         payload = {
             "user_id": self.bot_user_id,
             "old_sticker": old_sticker_id,
-            "sticker": self._sticker_payload(new_item),
+            "sticker": self._sticker_payload(new_item, allow_missing_file_id=dry_run),
         }
         if dry_run:
             return {"operation": "replace_item", "payload": payload}
@@ -164,11 +168,11 @@ class TelegramProvider:
         self._request("setStickerSetTitle", payload)
         return {"operation": "update_title", "set_name": set_name}
 
-    def _sticker_payload(self, item: TelegramTargetItem) -> dict[str, Any]:
-        if not item.telegram_file_id:
+    def _sticker_payload(self, item: TelegramTargetItem, allow_missing_file_id: bool = False) -> dict[str, Any]:
+        if not item.telegram_file_id and not allow_missing_file_id:
             raise TelegramApiError(f"Item {item.source_id} has no telegram_file_id for upload")
         return {
-            "sticker": item.telegram_file_id,
+            "sticker": item.telegram_file_id or f"MISSING_FILE_ID:{item.source_id}",
             "format": "animated" if item.kind == "stickers" else "static",
             "emoji_list": [item.emoji or "😀"],
             "keywords": [item.source_id],
