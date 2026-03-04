@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from app.config import settings
 from app.domain.diff import build_diff
-from app.domain.models import SourceEmote, SyncKind, SyncPlan
+from app.domain.models import SourceEmote, SyncKind, SyncPlan, TelegramTargetItem
 from app.domain.planner import shard_target_sets
 from app.media.animated_render import render_animated
 from app.media.cache import RenderCache
@@ -23,28 +23,24 @@ class SyncService:
         dry_run: bool = False,
         force_full_resync: bool = False,
     ) -> SyncPlan:
-        # fetch
         source_items = self.seventv.fetch_emotes(kind)
-
-        # normalize
         normalized = self._normalize(source_items, kind)
-
-        # render
         rendered = self._render(normalized)
-
-        # shard
-        shards = shard_target_sets(kind, rendered, settings.default_shard_size, "seventv")
-
-        # read current state
         current = self.telegram.read_current_state(kind)
 
-        # diff
         to_create, to_update, to_delete = build_diff(rendered, current, force_full_resync=force_full_resync)
 
-        # apply
-        self.telegram.apply(kind, to_create, to_update, to_delete, dry_run=dry_run)
+        if to_create or to_update or to_delete:
+            self.telegram.apply(kind, to_create, to_update, to_delete, dry_run=dry_run)
 
-        # report
+        projected = self._project_state(current, to_create, to_update, to_delete)
+        shards = shard_target_sets(
+            kind,
+            projected,
+            settings.default_shard_size,
+            f"{settings.telegram_set_base_name}_by_{settings.telegram_bot_username.lstrip('@')}",
+        )
+
         return SyncPlan(
             kind=kind,
             source_count=len(source_items),
@@ -56,6 +52,21 @@ class SyncService:
             to_delete=to_delete,
             shards=shards,
         )
+
+    def _project_state(
+        self,
+        current: list[TelegramTargetItem],
+        to_create: list[TelegramTargetItem],
+        to_update: list[TelegramTargetItem],
+        to_delete: list[TelegramTargetItem],
+    ) -> list[TelegramTargetItem]:
+        deleted_sources = {item.source_id for item in to_delete}
+        by_source = {item.source_id: item for item in current if item.source_id not in deleted_sources}
+        for item in to_update:
+            by_source[item.source_id] = item
+        for item in to_create:
+            by_source[item.source_id] = item
+        return list(by_source.values())
 
     def _normalize(self, source_items: list[SourceEmote], kind: SyncKind) -> list[SourceEmote]:
         normalized: list[SourceEmote] = []
