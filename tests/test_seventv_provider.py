@@ -52,3 +52,16 @@ def test_seventv_provider_fetch_emotes_filters_by_kind_with_mocked_http() -> Non
 
     assert [item.source_id for item in emoji_only] == ["e1"]
     assert [item.source_id for item in stickers_only] == ["e2"]
+
+
+def test_seventv_provider_fetch_emotes_returns_empty_when_emote_set_missing() -> None:
+    payload = {"id": "user"}
+
+    def handler(request: httpx.Request) -> httpx.Response:  # noqa: ARG001
+        return httpx.Response(200, json=payload)
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    provider = SevenTVProvider(seventv_user_id="user", client=client)
+
+    assert provider.fetch_emotes("emoji") == []
+    assert provider.fetch_emotes("stickers") == []
