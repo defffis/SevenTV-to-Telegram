@@ -71,3 +71,28 @@ def test_mocked_telegram_provider_apply_dry_run() -> None:
     assert any(op["operation"] == "add_item" for op in operations)
     assert any(op["operation"] == "replace_item" for op in operations)
     assert any(op["operation"] == "delete_item" for op in operations)
+
+
+def test_mocked_telegram_provider_apply_dry_run_allows_missing_file_id() -> None:
+    provider = _MockTelegramProvider()
+    missing = TelegramTargetItem(
+        target_id="target-missing",
+        source_id="missing",
+        name="name-missing",
+        kind="emoji",
+        telegram_file_id=None,
+        emoji="😀",
+    )
+
+    operations = provider.apply(
+        kind="emoji",
+        to_create=[missing],
+        to_update=[missing],
+        to_delete=[],
+        dry_run=True,
+    )
+
+    add_item_operation = next(op for op in operations if op["operation"] == "add_item")
+    replace_item_operation = next(op for op in operations if op["operation"] == "replace_item")
+    assert add_item_operation["payload"]["sticker"]["sticker"] == "MISSING_FILE_ID:missing"
+    assert replace_item_operation["payload"]["sticker"]["sticker"] == "MISSING_FILE_ID:missing"
